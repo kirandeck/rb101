@@ -1,3 +1,5 @@
+require 'pry'
+
 WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] +
                 [[1, 4, 7], [2, 5, 8], [3, 6, 9]] +
                 [[1, 5, 9], [3, 5, 7]]
@@ -69,13 +71,7 @@ def joinor(array, default1 = ', ', default2 = 'or')
   end
 end
 
-def computer_defense(line, board, marker)
-  if board.values_at(*line).count(marker) == 2
-    board.select { |k, v| line.include?(k) && v == INTIAL_MARKER }.keys.first
-  end
-end
-
-def computer_offense(line, board, marker)
+def find_square(line, board, marker)
   if board.values_at(*line).count(marker) == 2
     board.select { |k, v| line.include?(k) && v == INTIAL_MARKER }.keys.first
   end
@@ -92,15 +88,20 @@ def player_places_piece!(brd)
   brd[square] = PLAYER_MARKER
 end
 
-def computer_places_piece!(brd)
-  square = nil
+def computer_offense_available?(square, brd)
   WINNING_LINES.each do |line|
-    square = computer_offense(line, brd, COMPUTER_MARKER)
+    square = find_square(line, brd, COMPUTER_MARKER)
     break if square
   end
+  square
+end
+
+def computer_places_piece!(brd)
+  square = nil
+  square = computer_offense_available?(square, brd)
   if !square
     WINNING_LINES.each do |line|
-      square = computer_defense(line, brd, PLAYER_MARKER)
+      square = find_square(line, brd, PLAYER_MARKER)
       break if square
     end
   end

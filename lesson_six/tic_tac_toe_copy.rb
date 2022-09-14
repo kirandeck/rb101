@@ -1,3 +1,5 @@
+require 'pry'
+
 WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] +
                 [[1, 4, 7], [2, 5, 8], [3, 6, 9]] +
                 [[1, 5, 9], [3, 5, 7]]
@@ -91,11 +93,12 @@ def computer_offense_available?(square, brd)
     square = find_square(line, brd, COMPUTER_MARKER)
     break if square
   end
+  square
 end
 
 def computer_places_piece!(brd)
   square = nil
-  computer_offense_available?(square, brd)
+  square = computer_offense_available?(square, brd)
   if !square
     WINNING_LINES.each do |line|
       square = find_square(line, brd, PLAYER_MARKER)
