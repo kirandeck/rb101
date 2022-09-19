@@ -70,9 +70,23 @@ end
 
 def play_again?
   puts "------------"
-  prompt "Do you want to continue playing? (y or n)"
-  answer = gets.chomp
-  answer.downcase.start_with?('y')
+  loop do
+    prompt "Do you want to continue playing? (y or n)"
+    answer = gets.chomp.downcase
+    return true if answer.start_with?('y')
+    return false if answer.start_with?('n')
+    prompt "Invalid input. Answer must be 'y' for yes or 'n' for no."
+  end
+end
+
+def another_match?
+  loop do
+    prompt "Do you want to play another match? (y or n)"
+    answer = gets.chomp.downcase
+    return true if answer.start_with?('y')
+    return false if answer.start_with?('n')
+    prompt "Invalid input. Answer must be 'y' for yes or 'n' for no."
+  end
 end
 
 def end_output(dealer_cards, dealer_total, player_cards, player_total)
@@ -83,17 +97,97 @@ def end_output(dealer_cards, dealer_total, player_cards, player_total)
 end
 
 def scoreboard(dealer_wins, player_wins)
-  prompt "First to 5 points wins. You: #{player_wins} | Dealer: #{dealer_wins}."
+  if player_wins < 5 && dealer_wins < 5
+    prompt "First to 5 wins. You: #{player_wins} | Dealer: #{dealer_wins}"
+  end
   prompt "You won the match!" if player_wins >= 5
   prompt "Dealer won the match." if dealer_wins >= 5
+end
+
+# rubocop:disable Metrics/AbcSize
+# rubocop:disable Metrics/MethodLength
+# rubocop:disable Layout/LineLength
+def rules
+  loop do
+    prompt "Do you want to read the rules? (y or n)"
+    answer = gets.chomp.downcase
+    break if answer == 'n'
+    if answer == 'y'
+      puts "---------------------------------------------------------------------"
+      puts "The goal of the game is to reach 21 without going over."
+      puts "Cards are worth face value.. but jack, king, and queen are worth 10."
+      puts "Aces are worth 11, but can be worth 1 if your total is over 21."
+      puts "You will be playing against the dealer."
+      puts "---------------------------------------------------------------------"
+      puts "You'll be dealt 2 cards which you can see."
+      puts "The dealer also has two cards, but you only see 1."
+      puts "You can choose to be dealt another card (hit) or stay."
+      puts "If you go over 21 you automatically lose."
+      puts "---------------------------------------------------------------------"
+      puts "Once you stay, the dealer shows his cards."
+      puts "If the dealers total is below 17, he has to hit."
+      puts "But if the dealers total is 17 or more, he has to stay."
+      puts "If neither player is above 21, cards are compared."
+      puts "Whoever is closest to 21 wins."
+      puts "And remember, if a player goes over 21 they lose."
+      puts "---------------------------------------------------------------------"
+      loop do
+        prompt "Enter any key to begin the game:"
+        got_it = gets.chomp.downcase
+        break if got_it
+      end
+      break
+    end
+    prompt "Invalid input. Enter either 'y' for yes or 'n' for no."
+  end
+end
+# rubocop:enable Metrics/AbcSize
+# rubocop:enable Metrics/MethodLength
+# rubocop:enable Layout/LineLength
+
+def hit_or_stay?
+  loop do
+    prompt "(h)it or (s)tay?"
+    player_turn = gets.chomp.downcase
+    return player_turn if ['h', 's'].include?(player_turn)
+    prompt "Invalid choice. Enter 'h' or 's'"
+  end
+end
+
+def player_hits(player_total, player_cards)
+  prompt "You chose to hit!"
+  prompt "Your cards are now #{player_cards}"
+  prompt "Your total is now #{player_total}"
+end
+
+def dealer_hits(dealer_total, dealer_cards)
+  prompt "Dealer hits!"
+  prompt "Dealer cards are now: #{dealer_cards}"
+  prompt "Dealer total is now #{dealer_total}"
+  sleep(3)
+end
+
+def bust(dealer_total, player_total, dealer_cards, player_cards)
+  display_result(dealer_total, player_total)
+  sleep(3)
+  end_output(dealer_cards, dealer_total, player_cards, player_total)
+end
+
+def both_stayed(dealer_total, player_total, dealer_cards, player_cards)
+  end_output(dealer_cards, dealer_total, player_cards, player_total)
+  sleep(3)
+  display_result(dealer_total, player_total)
 end
 
 loop do
   player_wins = 0
   dealer_wins = 0
+  prompt "Welcome to 21!"
+  rules
   loop do
-    prompt "Welcome to 21!"
-
+    system 'clear'
+    prompt "Shuffling..."
+    sleep(2)
     deck = initialize_deck
     player_cards = []
     dealer_cards = []
@@ -107,22 +201,13 @@ loop do
     dealer_total = total(dealer_cards)
 
     prompt "Dealer has #{dealer_cards[0]} and ?"
-    prompt "You have: #{player_cards[0]} & #{player_cards[1]}, for a total of #{player_total}"
-
+    prompt "You have: #{player_cards}, for a total of #{player_total}"
     loop do
-      player_turn = nil
-      loop do
-        prompt "(h)it or (s)tay?"
-        player_turn = gets.chomp.downcase
-        break if ['h', 's'].include?(player_turn)
-        prompt "Invalid choice. Enter 'h' or 's'"
-      end
+      player_turn = hit_or_stay?
       if player_turn.start_with?('h')
         player_cards << deck.pop
         player_total = total(player_cards)
-        prompt "You chose to hit!"
-        prompt "Your cards are now #{player_cards}"
-        prompt "Your total is now #{player_total}"
+        player_hits(player_total, player_cards)
       end
       break if busted?(player_total)
       break if player_turn.start_with?('s')
@@ -132,8 +217,7 @@ loop do
 
     if busted?(player_total)
       dealer_wins += 1
-      end_output(dealer_cards, dealer_total, player_cards, player_total)
-      display_result(dealer_total, player_total)
+      bust(dealer_total, player_total, dealer_cards, player_cards)
       scoreboard(dealer_wins, player_wins)
       break if dealer_wins >= 5
       play_again? ? next : break
@@ -142,22 +226,20 @@ loop do
     end
 
     prompt "Dealer turn.."
+    sleep(2)
 
     loop do
       break if dealer_total >= SAFE
-
-      prompt "Dealer hits!"
       dealer_cards << deck.pop
       dealer_total = total(dealer_cards)
-      prompt "Dealer cards are now: #{dealer_cards}"
+      dealer_hits(dealer_total, dealer_cards)
     end
 
     dealer_total = total(dealer_cards)
 
     if busted?(dealer_total)
       player_wins += 1
-      end_output(dealer_cards, dealer_total, player_cards, player_total)
-      display_result(dealer_total, player_total)
+      bust(dealer_total, player_total, dealer_cards, player_cards)
       scoreboard(dealer_wins, player_wins)
       break if player_wins >= 5
       play_again? ? next : break
@@ -165,10 +247,7 @@ loop do
       prompt "Dealer stays at #{dealer_total}"
     end
 
-    end_output(dealer_cards, dealer_total, player_cards, player_total)
-
-    display_result(dealer_total, player_total)
-
+    both_stayed(dealer_total, player_total, dealer_cards, player_cards)
     result = detect_result(dealer_total, player_total)
     case result
     when :player then player_wins += 1
@@ -180,10 +259,7 @@ loop do
     break if player_wins >= 5 || dealer_wins >= 5
     break unless play_again?
   end
-  prompt "Do you want to play another match? (y or n)"
-  response = gets.chomp.downcase
-  break unless response.start_with?('y')
+  break unless another_match?
 end
 
 prompt "Thank you for playing 21!"
-
